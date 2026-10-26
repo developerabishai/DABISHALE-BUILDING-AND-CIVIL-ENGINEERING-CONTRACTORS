@@ -1,7 +1,13 @@
 # ===== DABISHALE CONSTRUCTORS - FULL EMAIL BACKEND =====
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8')
+
 print("🚀 Starting Dabishale Constructors Email Backend...")
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_mail import Mail, Message
 import os
@@ -12,17 +18,20 @@ import logging
 # Load environment variables
 load_dotenv()
 
-# Create Flask app
-app = Flask(__name__)
+# Create Flask app that serves static frontend files directly
+app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)  # Allow website to connect
 
 # ===== EMAIL CONFIGURATION =====
+mail_user = os.getenv('MAIL_USERNAME', 'abishaikyalo@gmail.com').strip()
+mail_pass = os.getenv('MAIL_PASSWORD', 'jwghrdcoqccygqml').replace(' ', '').strip()
+
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME', 'abishaikyalo@gmail.com')
-app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD', 'jwghrdcoqccygqml')  # NO SPACES
-app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_USERNAME', 'abishaikyalo@gmail.com')
+app.config['MAIL_USERNAME'] = mail_user
+app.config['MAIL_PASSWORD'] = mail_pass
+app.config['MAIL_DEFAULT_SENDER'] = mail_user
 
 mail = Mail(app)
 
@@ -31,7 +40,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 print("=" * 60)
-print("DABISHALE CONSTRUCTORS - EMAIL BACKEND")
+print("DABISHALE CONSTRUCTORS - WEBSITE & EMAIL BACKEND")
 print("=" * 60)
 print(f"📧 Email sender: {app.config['MAIL_USERNAME']}")
 print(f"📨 Sending to: abishaikyalo@gmail.com")
@@ -39,7 +48,13 @@ print("=" * 60)
 
 @app.route('/')
 def home():
-    """Home page - check if backend is running"""
+    """Serve the Dabishale website"""
+    return send_from_directory('.', 'index.html')
+
+@app.route('/api/status')
+@app.route('/api/health')
+def status():
+    """Health check endpoint"""
     return jsonify({
         "service": "Dabishale Constructors Email Service",
         "status": "Running ✅",
@@ -324,9 +339,11 @@ if __name__ == '__main__':
         print(f"✅ Email configured: {username}")
         print("✅ Ready to send emails to: abishaikyalo@gmail.com")
     
+    port = int(os.environ.get('PORT', 5000))
+    is_debug = os.environ.get('FLASK_DEBUG', 'false').lower() in ('true', '1') if os.environ.get('PORT') else True
     print("\n" + "=" * 60)
-    print("🌐 Server starting at: http://localhost:5000")
+    print(f"🌐 Server starting at: http://localhost:{port}")
     print("📧 Email testing: Submit contact form on website")
     print("=" * 60)
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=is_debug, host='0.0.0.0', port=port)

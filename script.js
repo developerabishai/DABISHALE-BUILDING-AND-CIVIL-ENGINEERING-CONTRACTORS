@@ -582,8 +582,15 @@ async function sendEmail() {
     
     console.log('Form Data:', formData);
     
-    // Use localhost for testing - CHANGE THIS WHEN DEPLOYED
-    const API_URL = 'http://localhost:5000/api/contact';
+    // Determine API URL dynamically based on current environment
+    let API_URL;
+    if (window.location.protocol === 'file:') {
+        API_URL = 'http://localhost:5000/api/contact';
+    } else if (window.location.hostname.endsWith('github.io')) {
+        API_URL = window.DABISHALE_BACKEND_URL || 'http://localhost:5000/api/contact';
+    } else {
+        API_URL = window.location.origin + '/api/contact';
+    }
     console.log('API URL:', API_URL);
     
     try {
@@ -613,12 +620,15 @@ async function sendEmail() {
     } catch (error) {
         console.error('Contact form error:', error);
         
-        if (error.toString().includes('Failed to fetch')) {
-            showNotification('⚠️ Cannot connect to Python backend. Make sure it is running!', 'error');
-            showNotification('Run this command: python app.py', 'info');
-        } else {
-            showNotification('❌ Network error. Please check your connection.', 'error');
-        }
+        // Graceful fallback: If backend cannot be reached, offer direct email / WhatsApp
+        const subject = encodeURIComponent(`Inquiry from ${formData.name} - ${formData.service}`);
+        const body = encodeURIComponent(`Name: ${formData.name}\nEmail: ${formData.email}\nPhone: ${formData.phone}\nService: ${formData.service}\n\nMessage:\n${formData.message}`);
+        const mailtoUrl = `mailto:abishaikyalo@gmail.com?subject=${subject}&body=${body}`;
+
+        showNotification('⚠️ Backend offline. Opening direct email to abishaikyalo@gmail.com...', 'info');
+        setTimeout(() => {
+            window.location.href = mailtoUrl;
+        }, 1200);
     } finally {
         // Reset button state
         submitBtn.classList.remove('loading');
@@ -1632,8 +1642,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // Service Worker for offline support (optional)
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(error => {
-            console.log('Service Worker registration failed:', error);
+        navigator.serviceWorker.register('./sw.js').catch(error => {
+            console.log('Service Worker registration note:', error);
         });
     });
 
